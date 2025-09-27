@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Campin Around</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --accent:#7dd3fc;
+      --text:#e6eef8;
+    }
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      background:linear-gradient(180deg,var(--bg) 0%, #071025 100%);
+      color:var(--text);
+      padding:32px 16px;
+    }
+    h1,h2{margin:0 0 16px;}
+    h1{
+      text-align:center;
+      font-size:clamp(1.8rem,3.5vw,2.8rem);
+      margin-bottom:32px;
+    }
+    h2{
+      font-size:clamp(1.4rem,2.8vw,2rem);
+      margin-top:40px;
+      margin-bottom:16px;
+      border-bottom:2px solid rgba(255,255,255,0.15);
+      padding-bottom:6px;
+    }
+    .gallery{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+      gap:12px;
+      width:100%;
+      max-width:980px;
+      margin:auto;
+    }
+    .thumb{
+      position:relative;
+      overflow:hidden;
+      border-radius:12px;
+      cursor:pointer;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2));
+      box-shadow:0 6px 18px rgba(2,6,23,0.6);
+      aspect-ratio:4/3;
+      display:block;
+      text-decoration:none;
+    }
+    .thumb img{
+      width:100%;height:100%;object-fit:cover;
+      transition:transform .35s ease;
+      display:block;
+    }
+    .thumb:hover img{transform:scale(1.06);}
+    .caption{
+      position:absolute;left:8px;right:8px;bottom:8px;
+      padding:4px 8px;border-radius:8px;
+      background:rgba(0,0,0,0.4);font-size:13px;
+      opacity:0;transform:translateY(6px);
+      transition:opacity .22s ease, transform .22s ease;
+    }
+    .thumb:hover .caption{opacity:1;transform:translateY(0);}
+    /* Lightbox */
+    .lightbox{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999;background:rgba(2,6,23,0.85);padding:20px;}
+    .lightbox.active{display:flex;}
+    .lightbox-inner{max-width:1200px;width:100%;max-height:92vh;position:relative;display:flex;align-items:center;justify-content:center;}
+    .lb-image{max-width:calc(100% - 140px);max-height:92vh;border-radius:10px;box-shadow:0 18px 60px rgba(0,0,0,0.7);background:#111;}
+    .control{position:absolute;top:50%;transform:translateY(-50%);width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(0,0,0,0.3);cursor:pointer;border:0;color:#fff;font-size:24px;}
+    .prev{left:10px;} .next{right:10px;}
+    .close{position:absolute;top:12px;right:12px;font-size:20px;padding:8px;background:rgba(0,0,0,0.3);border:0;border-radius:8px;color:#fff;cursor:pointer;}
+    .lb-footer{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);padding:6px 10px;border-radius:10px;background:rgba(0,0,0,0.35);font-size:14px;}
+    @media(max-width:640px){.lb-image{max-width:100%;max-height:78vh;}.control{display:none;}}
+  </style>
+</head>
+<body>
+  <h1>Campin Around</h1>
+
+  <section>
+    <h2>Takhlakh Lake Campground</h2>
+    <div class="gallery">
+      <a class="thumb" data-group="takhlakh" data-index="0" href="#"><img src="1a.png" alt="Takhlakh Lake view"><div class="caption">Takhlakh Lake view</div></a>
+      <a class="thumb" data-group="takhlakh" data-index="1" href="#"><img src="1b.png" alt="Campsite by the lake"><div class="caption">Campsite by the lake</div></a>
+      <a class="thumb" data-group="takhlakh" data-index="2" href="#"><img src="1c.png" alt="Trail near Takhlakh"><div class="caption">Trail near Takhlakh</div></a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Trillium Lake Dispersed Camp</h2>
+    <div class="gallery">
+      <a class="thumb" data-group="trillium" data-index="0" href="#"><img src="2a.png" alt="Trillium Lake sunset"><div class="caption">Trillium Lake sunset</div></a>
+      <a class="thumb" data-group="trillium" data-index="1" href="#"><img src="2b.png" alt="Forest camping spot"><div class="caption">Forest camping spot</div></a>
+      <a class="thumb" data-group="trillium" data-index="1" href="#"><img src="2c.png" alt="Forest camping spot"><div class="caption">Forest camping spot</div></a>
+      <a class="thumb" data-group="trillium" data-index="2" href="#"><img src="2d.png" alt="Lakeside view"><div class="caption">Lakeside view</div></a>
+    </div>
+  </section>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <div class="lightbox-inner">
+      <button class="control prev" id="prevBtn">&#10094;</button>
+      <img class="lb-image" id="lbImage" src="" alt="">
+      <button class="control next" id="nextBtn">&#10095;</button>
+      <button class="close" id="closeBtn">✕</button>
+      <div class="lb-footer" id="lbFooter"></div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const thumbs = Array.from(document.querySelectorAll('.thumb'));
+      const lightbox = document.getElementById('lightbox');
+      const lbImage = document.getElementById('lbImage');
+      const lbFooter = document.getElementById('lbFooter');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const closeBtn = document.getElementById('closeBtn');
+
+      // Group images by data-group
+      const groups = {};
+      thumbs.forEach(t=>{
+        const group = t.dataset.group;
+        if(!groups[group]) groups[group] = [];
+        const img = t.querySelector('img');
+        groups[group].push({src:img.src, alt:img.alt, caption:t.querySelector('.caption')?.textContent||''});
+      });
+
+      let currentGroup = null;
+      let currentIndex = 0;
+
+      function open(group, index){
+        currentGroup = group;
+        currentIndex = index;
+        show();
+        lightbox.classList.add('active');
+        lightbox.setAttribute('aria-hidden','false');
+        document.body.style.overflow='hidden';
+      }
+
+      function show(){
+        const data = groups[currentGroup][currentIndex];
+        lbImage.src = data.src;
+        lbImage.alt = data.alt;
+        lbFooter.textContent = (currentIndex+1)+' / '+groups[currentGroup].length+(data.caption?` — ${data.caption}`:'');
+      }
+
+      function close(){
+        lightbox.classList.remove('active');
+        lightbox.setAttribute('aria-hidden','true');
+        lbImage.src='';
+        document.body.style.overflow='';
+      }
+
+      function next(){currentIndex=(currentIndex+1)%groups[currentGroup].length;show();}
+      function prev(){currentIndex=(currentIndex-1+groups[currentGroup].length)%groups[currentGroup].length;show();}
+
+      thumbs.forEach((thumb)=>{
+        thumb.addEventListener('click',(e)=>{
+          e.preventDefault();
+          open(thumb.dataset.group, parseInt(thumb.dataset.index,10));
+        });
+      });
+
+      nextBtn.addEventListener('click',next);
+      prevBtn.addEventListener('click',prev);
+      closeBtn.addEventListener('click',close);
+      lightbox.addEventListener('click',(e)=>{if(e.target===lightbox)close();});
+      document.addEventListener('keydown',(e)=>{
+        if(!lightbox.classList.contains('active')) return;
+        if(e.key==='Escape') close();
+        if(e.key==='ArrowRight') next();
+        if(e.key==='ArrowLeft') prev();
+      });
+    })();
+  </script>
+</body>
+</html>
