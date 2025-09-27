@@ -31,15 +31,20 @@
       border-bottom:2px solid rgba(255,255,255,0.15);
       padding-bottom:6px;
     }
+    /* GALLERY */
     .gallery{
-      display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+      display:flex;
       gap:12px;
-      width:100%;
-      max-width:980px;
+      overflow-x:auto;
+      scroll-snap-type:x mandatory;
+      -webkit-overflow-scrolling:touch;
+      padding-bottom:10px;
       margin:auto;
+      max-width:980px;
     }
     .thumb{
+      flex:0 0 auto;
+      scroll-snap-align:start;
       position:relative;
       overflow:hidden;
       border-radius:12px;
@@ -47,7 +52,7 @@
       background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2));
       box-shadow:0 6px 18px rgba(2,6,23,0.6);
       aspect-ratio:4/3;
-      display:block;
+      width:220px; /* fixed width so scrolling works well */
       text-decoration:none;
     }
     .thumb img{
@@ -64,7 +69,7 @@
       transition:opacity .22s ease, transform .22s ease;
     }
     .thumb:hover .caption{opacity:1;transform:translateY(0);}
-    /* Lightbox */
+    /* LIGHTBOX */
     .lightbox{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999;background:rgba(2,6,23,0.85);padding:20px;}
     .lightbox.active{display:flex;}
     .lightbox-inner{max-width:1200px;width:100%;max-height:92vh;position:relative;display:flex;align-items:center;justify-content:center;}
@@ -73,7 +78,10 @@
     .prev{left:10px;} .next{right:10px;}
     .close{position:absolute;top:12px;right:12px;font-size:20px;padding:8px;background:rgba(0,0,0,0.3);border:0;border-radius:8px;color:#fff;cursor:pointer;}
     .lb-footer{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);padding:6px 10px;border-radius:10px;background:rgba(0,0,0,0.35);font-size:14px;}
-    @media(max-width:640px){.lb-image{max-width:100%;max-height:78vh;}.control{display:none;}}
+    @media(max-width:640px){
+      .lb-image{max-width:100%;max-height:78vh;}
+      .control{display:none;}
+    }
   </style>
 </head>
 <body>
@@ -93,8 +101,8 @@
     <div class="gallery">
       <a class="thumb" data-group="trillium" data-index="0" href="#"><img src="camping_photos/2a.png" alt="Trillium Lake sunset"><div class="caption">Trillium Lake sunset</div></a>
       <a class="thumb" data-group="trillium" data-index="1" href="#"><img src="camping_photos/2b.png" alt="Forest camping spot"><div class="caption">Forest camping spot</div></a>
-      <a class="thumb" data-group="trillium" data-index="1" href="#"><img src="camping_photos/2c.png" alt="Forest camping spot"><div class="caption">Forest camping spot</div></a>
-      <a class="thumb" data-group="trillium" data-index="2" href="#"><img src="camping_photos/2d.png" alt="Lakeside view"><div class="caption">Lakeside view</div></a>
+      <a class="thumb" data-group="trillium" data-index="2" href="#"><img src="camping_photos/2c.png" alt="Forest camping spot"><div class="caption">Forest camping spot</div></a>
+      <a class="thumb" data-group="trillium" data-index="3" href="#"><img src="camping_photos/2d.png" alt="Lakeside view"><div class="caption">Lakeside view</div></a>
     </div>
   </section>
 
@@ -178,3 +186,4 @@
   </script>
 </body>
 </html>
+
