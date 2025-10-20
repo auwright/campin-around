@@ -9,21 +9,15 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <!-- MarkerCluster plugin -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 
   <style>
     :root{
       --bg:#0f1724;
       --text:#e6eef8;
-      --pin:#ffa500;     /* orange for single markers */
-      --cluster:#ffb347; /* orange cluster base */
+      --pin:#ffa500;     /* orange for tent icon */
+      --cluster:#ffb347; /* cluster base */
       --cluster2:#ff9800;/* medium */
       --cluster3:#f57c00;/* large */
     }
@@ -36,32 +30,43 @@
     .leaflet-popup-content-wrapper{background:#0b1220;color:var(--text);border:1px solid rgba(255,255,255,.08)}
     .leaflet-popup-tip{background:#0b1220;}
 
-    /* Tiny orange dot marker (we’ll swap to tent icon later) */
-    .poi .dot{
-      width:12px;height:12px;border-radius:999px;
-      background:var(--pin);
-      border:1px solid rgba(0,0,0,.85);
-      box-shadow:0 0 0 2px rgba(0,0,0,.25), 0 2px 6px rgba(0,0,0,.35);
+    /* Tent marker as a DivIcon with inline SVG */
+    .tent-marker{
+      position:relative;
+      width:28px;height:28px; /* visual box; SVG scales to fit */
+      transform: translateZ(0); /* crisper on some GPUs */
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,.45));
     }
+    .tent-marker svg{
+      width:28px;height:28px;display:block;
+    }
+    .tent-fill{ fill: var(--pin); }
+    .tent-stroke{ stroke: rgba(0,0,0,.75); stroke-width:1.5; fill:none; stroke-linejoin:round; }
 
-    /* Custom cluster bubble */
+    /* Cluster bubbles */
     .cluster{background:transparent;}
     .cluster .cluster-bubble{
-      display:flex;align-items:center;justify-content:center;
-      width:34px;height:34px;border-radius:999px;
-      color:#111;font-weight:700;
+      display:flex;align-items:center;gap:6px;justify-content:center;
+      width:36px;height:36px;border-radius:999px;
+      color:#111;font-weight:800;font-variant-numeric:tabular-nums;
       border:1px solid rgba(0,0,0,.45);
-      box-shadow:0 6px 18px rgba(0,0,0,.35), inset 0 0 0 2px rgba(255,255,255,.2);
-      background:radial-gradient(ellipse at 30% 30%, rgba(255,255,255,.6), rgba(255,255,255,.0) 45%), var(--cluster);
+      box-shadow:0 6px 18px rgba(0,0,0,.35), inset 0 0 0 2px rgba(255,255,255,.18);
+      background:radial-gradient(ellipse at 30% 30%, rgba(255,255,255,.55), rgba(255,255,255,0) 45%), var(--cluster);
     }
     .cluster.cluster-medium .cluster-bubble{
-      background:radial-gradient(ellipse at 30% 30%, rgba(255,255,255,.6), rgba(255,255,255,.0) 45%), var(--cluster2);
-      width:38px;height:38px;
+      background:radial-gradient(ellipse at 30% 30%, rgba(255,255,255,.55), rgba(255,255,255,0) 45%), var(--cluster2);
+      width:42px;height:42px;
     }
     .cluster.cluster-large .cluster-bubble{
-      background:radial-gradient(ellipse at 30% 30%, rgba(255,255,255,.6), rgba(255,255,255,.0) 45%), var(--cluster3);
-      width:44px;height:44px;
+      background:radial-gradient(ellipse at 30% 30%, rgba(255,255,255,.55), rgba(255,255,255,0) 45%), var(--cluster3);
+      width:48px;height:48px;
     }
+    .cluster .tent-glyph{
+      width:14px;height:14px; display:block;
+      filter: drop-shadow(0 1px 0 rgba(255,255,255,.25));
+    }
+    .cluster .tent-glyph .tent-fill{ fill:#6b3a00; } /* darker, for contrast on orange */
+    .cluster .tent-glyph .tent-stroke{ stroke: rgba(0,0,0,.65); stroke-width:1.2; }
   </style>
 </head>
 <body>
@@ -81,15 +86,28 @@
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
     }).addTo(map);
 
-    // Tiny orange dot marker (placeholder for tent icon)
-    const pointIcon = L.divIcon({
-      className: 'poi',
-      html: '<div class="dot"></div>',
-      iconSize: [12,12],
-      iconAnchor: [6,6] // center the dot
+    // ---------- Custom TENT marker (DivIcon with inline SVG) ----------
+    const tentSVG = `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <!-- simple tent -->
+        <path class="tent-fill" d="M4 18 L12 6 L20 18 Z"/>
+        <path class="tent-stroke" d="M4 18 L12 6 L20 18 Z M12 6 V18" />
+        <!-- door -->
+        <path class="tent-stroke" d="M11 18 L12 13 L13 18" />
+        <!-- small ground line for visual anchor -->
+        <path class="tent-stroke" d="M3.5 18.5 H20.5" />
+      </svg>
+    `;
+
+    const tentIcon = L.divIcon({
+      className: 'tent-marker',
+      html: tentSVG,
+      iconSize: [28,28],
+      iconAnchor: [14,20],   // bottom-center-ish; tweak if needed
+      popupAnchor: [0,-16]
     });
 
-    // Cluster layer with orange bubbles
+    // ---------- Cluster layer with tent glyph ----------
     const clusters = L.markerClusterGroup({
       chunkedLoading: true,
       spiderfyOnMaxZoom: true,
@@ -101,15 +119,21 @@
           count >= 50 ? 'cluster-large' :
           count >= 10 ? 'cluster-medium' : 'cluster-small';
 
+        const glyph = `
+          <svg class="tent-glyph" viewBox="0 0 24 24" aria-hidden="true">
+            <path class="tent-fill" d="M4 18 L12 6 L20 18 Z"/>
+            <path class="tent-stroke" d="M4 18 L12 6 L20 18 Z M12 6 V18" />
+          </svg>`;
+
         return L.divIcon({
-          html: `<div class="cluster-bubble">${count}</div>`,
+          html: `<div class="cluster-bubble">${glyph}<span>${count}</span></div>`,
           className: `cluster ${size}`,
-          iconSize: [44,44]
+          iconSize: [48,48]
         });
       }
     });
 
-    // Load your GeoJSON (adjust path if needed)
+    // ---------- Load your GeoJSON ----------
     fetch('camping_locations.geojson')
       .then(r => r.json())
       .then(geojson => {
@@ -120,7 +144,15 @@
           const [lng, lat] = f.geometry.coordinates || [];
           if (typeof lat !== 'number' || typeof lng !== 'number') return;
 
-          const m = L.marker([lat, lng], { icon: pointIcon })
+          // Optional per-feature color override: properties.color
+          const icon = f.properties?.color
+            ? L.divIcon({
+                ...tentIcon.options,
+                html: tentSVG.replace('class="tent-fill"', `class="tent-fill" style="fill:${cssEscape(f.properties.color)}"`),
+              })
+            : tentIcon;
+
+          const m = L.marker([lat, lng], { icon })
             .bindPopup(getPopup(f));
           markers.push(m);
         });
@@ -128,7 +160,7 @@
         clusters.addLayers(markers);
         map.addLayer(clusters);
 
-        // Fit to markers (guard against empty)
+        // Fit to markers
         if (markers.length) {
           const group = L.featureGroup(markers);
           map.fitBounds(group.getBounds(), { padding: [24,24], maxZoom: 12 });
@@ -136,21 +168,29 @@
       })
       .catch(err => console.error('Failed to load GeoJSON:', err));
 
-    // Popup helper
+    // ---------- Helpers ----------
     function getPopup(f){
       const p = f.properties || {};
       const title = p.name || p.title || 'Location';
       const desc  = p.description || p.note || '';
-      return `<strong>${escapeHtml(title)}</strong>${desc ? `<br>${escapeHtml(desc)}` : ''}`;
+      const extra = p.url ? `<br><a href="${escapeAttr(p.url)}" target="_blank" rel="noopener">More</a>` : '';
+      return `<strong>${escapeHtml(title)}</strong>${desc ? `<br>${escapeHtml(desc)}` : ''}${extra}`;
     }
 
-    // Simple HTML escaper for safety
     function escapeHtml(s){
       return String(s).replace(/[&<>"']/g, c => ({
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
       }[c]));
     }
+    function escapeAttr(s){
+      return String(s).replace(/"/g,'&quot;');
+    }
+    function cssEscape(s){
+      // very light "sanitization" for inline style usage
+      return String(s).replace(/[^#(),.%a-zA-Z0-9\- ]/g,'');
+    }
   </script>
 </body>
 </html>
+
 
